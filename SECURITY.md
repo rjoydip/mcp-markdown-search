@@ -18,7 +18,7 @@ Never commit secrets to version control:
 
 - `.dev.vars` - Local development secrets (not committed)
 - `.env` - Environment variables (not committed)
-- `WORKER_SECRET` / `MCP_SECRET` - Shared secrets between MCP and Worker
+- `MCP_SECRET` - Shared secret between MCP and Worker
 
 ### Authentication
 

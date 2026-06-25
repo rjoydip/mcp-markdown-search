@@ -154,3 +154,89 @@ jobs:
             } catch (error) {
               core.setFailed(`PR description update failed: ${error.message}`);
             }
+
+      - name: MCP Health Check
+        id: mcp-health
+        if: steps.deploy.outcome == 'success'
+        env:
+          WORKER_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          echo "Checking MCP health at $WORKER_URL/health"
+          curl -sSf "$WORKER_URL/health" | jq -e '.status == "ok"'
+
+      - name: MCP Integration Test
+        id: mcp-test
+        if: steps.deploy.outcome == 'success'
+        env:
+          WORKER_URL: ${{ steps.deploy.outputs.deployment-url }}
+          MCP_SECRET: ${{ secrets.MCP_SECRET }}
+        run: bun test tests/mcp-worker.test.ts
+
+      - name: Comment MCP Test Results
+        if: steps.deploy.outcome == 'success' && always()
+        env:
+          MCP_TEST_RESULT: ${{ steps.mcp-test.outcome }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.deployment-url }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const result = process.env.MCP_TEST_RESULT || 'skipped';
+            const previewUrl = process.env.PREVIEW_URL;
+            const commentBody = '## MCP Test Results\n\n' +
+              '**Status:** ' + (result === 'success' ? '✅ Passed' : '❌ Failed') + '\n' +
+              '**Worker:** ' + previewUrl + '\n' +
+              '\n' +
+              '<details>\n' +
+              '<summary>Test Details</summary>\n' +
+              '\n' +
+              'The MCP integration test validates the deployed Worker endpoints:\n' +
+              '- `GET /` — service metadata\n' +
+              '- `GET /health` — health check\n' +
+              '- `POST /search` — auth, validation, valid request\n' +
+              '- `POST /index` — auth, validation, valid request\n' +
+              '\n' +
+              '</details>';
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body?.includes('MCP Test Results')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: commentBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: commentBody,
+              });
+            }
+
+      - name: Mark MCP Test Status
+        if: steps.deploy.outcome == 'success' && always()
+        env:
+          MCP_TEST_RESULT: ${{ steps.mcp-test.outcome }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const result = process.env.MCP_TEST_RESULT === 'success' ? 'success' : 'failure';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: result,
+              context: 'MCP Integration Test',
+              description: result === 'success' ? 'MCP endpoints verified' : 'MCP test failed',
+              target_url: 'https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId,
+            });

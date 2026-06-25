@@ -24,7 +24,7 @@ The MCP server exposes **6 tools** for coding agents:
 
 ## Repository Layout
 
-```
+```bash
 mcp-markdown-search/
 ├── src/
 │   ├── index.ts              # Cloudflare Worker (HTTP routes)
@@ -96,11 +96,11 @@ curl -X POST https://<worker>-<hash>.workers.dev/search \
 
 ### MCP Server
 
-| Variable        | Required      | Description                      |
-| --------------- | ------------- | -------------------------------- |
-| `MARKDOWN_DIR`  | Yes           | Absolute path to the docs folder |
-| `WORKER_URL`    | Semantic only | Deployed Worker HTTPS URL        |
-| `WORKER_SECRET` | Semantic only | Shared secret matching Worker    |
+| Variable       | Required      | Description                      |
+| -------------- | ------------- | -------------------------------- |
+| `MARKDOWN_DIR` | Yes           | Absolute path to the docs folder |
+| `WORKER_URL`   | Semantic only | Deployed Worker HTTPS URL        |
+| `MCP_SECRET`   | Semantic only | Shared secret matching Worker    |
 
 ### Cloudflare Worker (set via `wrangler secret put`)
 

@@ -84,12 +84,12 @@ describe("MCP Integration Tests", () => {
 
 describe("WorkerClient Integration", () => {
   test("WorkerClient requires both URL and secret", () => {
-    const client = new WorkerClient({ workerUrl: "http://localhost:8787", workerSecret: "secret" });
+    const client = new WorkerClient({ workerUrl: "http://localhost:8787", mcpSecret: "secret" });
     expect(client).toBeDefined();
   });
 
   test("WorkerClient post method validates URL", async () => {
-    const client = new WorkerClient({ workerUrl: "", workerSecret: "test" });
+    const client = new WorkerClient({ workerUrl: "", mcpSecret: "test" });
 
     let errorThrown = false;
     try {
@@ -101,7 +101,7 @@ describe("WorkerClient Integration", () => {
   });
 
   test("WorkerClient post method validates secret", async () => {
-    const client = new WorkerClient({ workerUrl: "http://localhost", workerSecret: "" });
+    const client = new WorkerClient({ workerUrl: "http://localhost", mcpSecret: "" });
 
     let errorThrown = false;
     try {

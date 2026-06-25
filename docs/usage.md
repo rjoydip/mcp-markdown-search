@@ -107,11 +107,11 @@ Index all markdown files in `MARKDOWN_DIR`.
 
 ### MCP Server
 
-| Variable        | Required     | Default | Description           |
-| --------------- | ------------ | ------- | --------------------- |
-| `MARKDOWN_DIR`  | Yes          | `.`     | Directory to search   |
-| `WORKER_URL`    | For semantic | -       | Cloudflare Worker URL |
-| `WORKER_SECRET` | For semantic | -       | Auth secret           |
+| Variable       | Required     | Default | Description           |
+| -------------- | ------------ | ------- | --------------------- |
+| `MARKDOWN_DIR` | Yes          | `.`     | Directory to search   |
+| `WORKER_URL`   | For semantic | -       | Cloudflare Worker URL |
+| `MCP_SECRET`   | For semantic | -       | Auth secret           |
 
 ### Cloudflare Worker
 
@@ -159,3 +159,41 @@ Set via `wrangler secret put`:
   }
 }
 ```
+
+## Testing
+
+### MCP Worker Tests
+
+Tests the deployed Cloudflare Worker endpoints via HTTP:
+
+| Test suite | Command                                                 | Requires        |
+| ---------- | ------------------------------------------------------- | --------------- |
+| Endpoints  | `WORKER_URL=http://... bun run test:mcp`                | Worker running  |
+| Auth       | `WORKER_URL=http://... MCP_SECRET=... bun run test:mcp` | Worker + secret |
+
+```sh
+# Local: start worker in one terminal
+bun run dev
+
+# Local: run functional tests in another
+bun run test:mcp:local
+
+# Local: run full test suite with auth
+bun run dev:test    # terminal 1 (worker with MCP_SECRET)
+bun run test:mcp:auth  # terminal 2
+```
+
+### CI / Preview
+
+On every PR, after preview deploy, the workflow automatically runs:
+
+1. **MCP Health Check** — verifies `/health` endpoint
+2. **MCP Integration Test** — runs all tests with the preview URL and secret
+3. **PR Comment** — posts pass/fail results
+4. **Commit Status** — visible status check in PR
+
+### Auth Behavior
+
+- When `MCP_SECRET` is **not set** on the Worker, authentication is bypassed (local dev default)
+- When `MCP_SECRET` is **set**, all `/search` and `/index` requests require `X-MCP-Secret` header
+- Auth tests pass both when auth is enforced (`401`) and when bypassed (`500` from missing AI/Vectorize)

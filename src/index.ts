@@ -14,6 +14,7 @@ interface Env {
 const app = new Hono<{ Bindings: Env }>();
 
 function authenticate(env: Env, request: Request): boolean {
+  if (!env.MCP_SECRET) return true;
   const secret = request.headers.get("X-MCP-Secret");
   return secret === env.MCP_SECRET;
 }

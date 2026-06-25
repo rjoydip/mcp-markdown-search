@@ -78,6 +78,36 @@ Uses `@cf/baai/bge-base-en-v1.5` model:
 3. Apply `CHUNK_OVERLAP` between windows
 4. Filter out chunks < 20 characters
 
+## Testing Strategy
+
+### Unit Tests
+
+Lib modules (`chunker.ts`, `walker.ts`) are unit-tested with `bun test`.
+
+### Worker Route Tests
+
+`worker-routes.test.ts` tests Worker routes in-process using Hono's `app.request()`.
+
+### MCP Worker HTTP Tests
+
+`mcp-worker.test.ts` tests the deployed Worker via live HTTP requests:
+
+| Describe  | Guard                     | Tests                                              |
+| --------- | ------------------------- | -------------------------------------------------- |
+| Endpoints | `WORKER_URL` required     | `GET /`, `GET /health`, validation (400), handlers |
+| Auth      | `WORKER_URL + MCP_SECRET` | `401` for missing/wrong `X-MCP-Secret` header      |
+
+Auth bypass: when `MCP_SECRET` is not set on the Worker, `authenticate()` returns `true` for all requests.
+
+### CI / Preview Testing
+
+The `preview.yml` workflow runs MCP tests after every preview deploy:
+
+1. **MCP Health Check** — `curl /health`
+2. **MCP Integration Test** — `bun test tests/mcp-worker.test.ts` with preview URL + secret
+3. **PR Comment** — pass/fail result posted as PR comment
+4. **Commit Status** — visible check in PR checks list
+
 ## Storage
 
 - **Vectorize**: Stores embeddings with metadata (filePath, chunkIndex, preview)
