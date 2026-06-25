@@ -21,7 +21,7 @@
     "build": "bun build src/mcp.ts --compile --outfile dist/mcp-markdown-search",
     "build:cli": "bun build src/cli.ts --outfile dist/cli.js",
     "build:all": "bun run build && bun run build:cli",
-    "publish:preview": "npx pkg.pr.new publish './dist/*' --no-compact --comment=update",
+    "publish:preview": "npx pkg-pr-new publish './dist/*' --no-compact --comment=update",
     "fallow": "fallow",
     "fallow:dead": "fallow dead-code",
     "fallow:dupes": "fallow dupes",
@@ -38,7 +38,6 @@
     "fallow": "^2.98.0",
     "oxfmt": "^0.54.0",
     "oxlint": "^1.70.0",
-    "pkg-pr-new": "latest",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^6.0.3",
     "wrangler": "^4.101.0"

@@ -27,11 +27,22 @@ app.get("/", (c) => {
   return c.json({
     name: "mcp-markdown-search",
     version: "1.0.0",
-    description: "MCP server + Cloudflare Worker for markdown search with full-text and semantic capabilities",
+    description:
+      "MCP server + Cloudflare Worker for markdown search with full-text and semantic capabilities",
     endpoints: {
       health: { method: "GET", path: "/health", description: "Health check" },
-      search: { method: "POST", path: "/search", description: "Semantic search", auth: "X-MCP-Secret" },
-      index: { method: "POST", path: "/index", description: "Index a file for search", auth: "X-MCP-Secret" },
+      search: {
+        method: "POST",
+        path: "/search",
+        description: "Semantic search",
+        auth: "X-MCP-Secret",
+      },
+      index: {
+        method: "POST",
+        path: "/index",
+        description: "Index a file for search",
+        auth: "X-MCP-Secret",
+      },
     },
     env: {
       MCP_SECRET: c.env.MCP_SECRET ? "configured" : "missing",

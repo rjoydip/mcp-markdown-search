@@ -202,13 +202,13 @@ jobs:
         run: |
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: Install pkg.pr.new
-        run: npm install -g pkg.pr.new
+      - name: Install pkg-pr-new
+        run: npm install -g pkg-pr-new
 
-      - name: Publish to pkg.pr.new
+      - name: Publish to pkg-pr.new
         id: publish
         run: |
-          URL=$(npx pkg.pr.new publish './mcp-markdown-search*' --no-compact --comment=update 2>&1 | tee /dev/stderr | grep -o 'https://pkg.pr.new/[^ ]*' | head -1)
+          URL=$(npx pkg-pr-new publish './mcp-markdown-search*' --no-compact --comment=update 2>&1 | tee /dev/stderr | grep -o 'https://pkg.pr.new/[^ ]*' | head -1)
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Update Commit Status
