@@ -23,6 +23,7 @@
     "build:cli": "bun build src/cli.ts --outfile dist/cli.js",
     "build:all": "bun run build && bun run build:cli",
     "publish:preview": "npx pkg-pr-new publish './dist/*' --no-compact --comment=update",
+    "actions-up": "actions-up",
     "fallow": "fallow",
     "fallow:dead": "fallow dead-code",
     "fallow:dupes": "fallow dupes",
@@ -34,6 +35,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260617.1",
+    "actions-up": "^1.14.3",
     "bun-types": "^1.3.14",
     "fallow": "^2.98.0",
     "oxfmt": "^0.54.0",
