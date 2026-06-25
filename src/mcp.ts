@@ -5,6 +5,7 @@ import { readFileSync } from "fs";
 import { resolve, relative, isAbsolute } from "path";
 import { walkMarkdown, isMarkdownFile } from "./lib/walker.js";
 import { WorkerClient } from "./lib/worker-client.js";
+import pkg from "../package.json";
 
 const markdownDir = process.env.MARKDOWN_DIR || "./docs";
 const workerUrl = process.env.WORKER_URL || "";
@@ -15,7 +16,7 @@ const workerClient = workerUrl && mcpSecret ? new WorkerClient({ workerUrl, mcpS
 const server = new Server(
   {
     name: "mcp-markdown-search",
-    version: "1.0.0",
+    version: pkg.version,
   },
   {
     capabilities: {
