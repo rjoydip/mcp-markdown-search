@@ -58,6 +58,9 @@ jobs:
           bun run build
           bun run build:cli
 
+      - name: Unit Test
+        run: bun test
+
       - name: Upload artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -96,7 +99,7 @@ jobs:
           MCP_SECRET: ${{ secrets.MCP_SECRET }}
 
       - name: Post PR Comment
-        if: github.event_name == 'pull_request'
+        if: always()
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.deployment-url }}
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
@@ -105,6 +108,8 @@ jobs:
             const previewUrl = process.env.PREVIEW_URL || 'Deploy failed';
             const prNumber = '${{ github.event.pull_request.number }}';
             const sha = '${{ needs.ci-gate.outputs.sha }}';
+
+            core.info(`Posting preview comment for PR #${prNumber} — URL: ${previewUrl}`);
 
             const body = '## Preview Deployment\n' +
               '\n' +
@@ -125,34 +130,40 @@ jobs:
               '---\n' +
               '_Deployed automatically from CI_';
 
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: parseInt(prNumber),
-            });
-
-            const existingComment = comments.data.find(c =>
-              c.body.includes('## Preview Deployment')
-            );
-
-            if (existingComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existingComment.id,
-                body: body,
-              });
-            } else {
-              await github.rest.issues.createComment({
+            try {
+              const comments = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: parseInt(prNumber),
-                body: body,
               });
+
+              const existingComment = comments.data.find(c =>
+                c.body.includes('## Preview Deployment')
+              );
+
+              if (existingComment) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existingComment.id,
+                  body: body,
+                });
+                core.info('Updated existing comment');
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: parseInt(prNumber),
+                  body: body,
+                });
+                core.info('Created new comment');
+              }
+            } catch (error) {
+              core.setFailed(`Comment failed: ${error.message}`);
             }
 
       - name: Update Commit Status
-        if: github.event_name == 'push'
+        if: always() && github.event_name == 'push'
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.deployment-url }}
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
@@ -161,12 +172,17 @@ jobs:
             const previewUrl = process.env.PREVIEW_URL || 'Deploy failed';
             const sha = '${{ needs.ci-gate.outputs.sha }}';
 
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: sha,
-              state: previewUrl === 'Deploy failed' ? 'failure' : 'success',
-              target_url: previewUrl,
-              description: previewUrl === 'Deploy failed' ? 'Preview deploy failed' : 'Preview available',
-              context: 'preview/deploy',
-            });
+            try {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: sha,
+                state: previewUrl === 'Deploy failed' ? 'failure' : 'success',
+                target_url: previewUrl,
+                description: previewUrl === 'Deploy failed' ? 'Preview deploy failed' : 'Preview available',
+                context: 'preview/deploy',
+              });
+              core.info(`Commit status set to ${previewUrl === 'Deploy failed' ? 'failure' : 'success'}`);
+            } catch (error) {
+              core.setFailed(`Commit status failed: ${error.message}`);
+            }
