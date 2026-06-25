@@ -23,6 +23,26 @@ async function embedQuery(text: string, env: Env): Promise<number[]> {
   return res.data;
 }
 
+app.get("/", (c) => {
+  return c.json({
+    name: "mcp-markdown-search",
+    version: "1.0.0",
+    description: "MCP server + Cloudflare Worker for markdown search with full-text and semantic capabilities",
+    endpoints: {
+      health: { method: "GET", path: "/health", description: "Health check" },
+      search: { method: "POST", path: "/search", description: "Semantic search", auth: "X-MCP-Secret" },
+      index: { method: "POST", path: "/index", description: "Index a file for search", auth: "X-MCP-Secret" },
+    },
+    env: {
+      MCP_SECRET: c.env.MCP_SECRET ? "configured" : "missing",
+      CHUNK_SIZE: c.env.CHUNK_SIZE || "1000 (default)",
+      CHUNK_OVERLAP: c.env.CHUNK_OVERLAP || "100 (default)",
+      MARKDOWN_DIR: c.env.MARKDOWN_DIR || "./docs (default)",
+    },
+    vectorize: "connected",
+  });
+});
+
 app.get("/health", (c) => {
   return c.json({ status: "ok", version: "1.0.0" });
 });

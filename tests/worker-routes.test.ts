@@ -1,6 +1,26 @@
 import { describe, test, expect } from "bun:test";
 import app from "../src/index";
 
+describe("Worker Routes - Root", () => {
+  const env = {
+    MCP_SECRET: "test-secret",
+    AI: {} as never,
+    VECTORIZE: {} as never,
+  };
+
+  test("GET / returns metadata", async () => {
+    const res = await app.request("/", { method: "GET" }, env);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.name).toBe("mcp-markdown-search");
+    expect(body.version).toBe("1.0.0");
+    expect(body.endpoints).toBeDefined();
+    expect(body.endpoints.health).toBeDefined();
+    expect(body.endpoints.search).toBeDefined();
+    expect(body.endpoints.index).toBeDefined();
+  });
+});
+
 describe("Worker Routes - Health", () => {
   test("GET /health returns ok", async () => {
     const res = await app.request("/health", { method: "GET" });
