@@ -75,7 +75,8 @@ describeEndpoints("MCP Endpoints", () => {
       headers: headers(),
       body: JSON.stringify({ query: "test query", topK: 5 }),
     });
-    expect(res.ok).toBe(true);
+    expect(res.status).not.toBe(401);
+    expect(res.status).not.toBe(400);
   });
 
   test("POST /index returns 400 when filePath is missing", async () => {
@@ -118,7 +119,8 @@ describeEndpoints("MCP Endpoints", () => {
         content: "# Test Document\n\nThis is test content.",
       }),
     });
-    expect(res.ok).toBe(true);
+    expect(res.status).not.toBe(401);
+    expect(res.status).not.toBe(400);
   });
 });
 

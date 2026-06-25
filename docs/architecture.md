@@ -90,7 +90,7 @@ Lib modules (`chunker.ts`, `walker.ts`) are unit-tested with `bun test`.
 
 ### MCP Worker HTTP Tests
 
-`mcp-worker.test.ts` tests the deployed Worker via live HTTP requests:
+`mcp-worker.test.ts` tests the Worker via live HTTP requests:
 
 | Describe              | Guard                            | Tests                                               |
 | --------------------- | -------------------------------- | --------------------------------------------------- |
@@ -100,14 +100,15 @@ Lib modules (`chunker.ts`, `walker.ts`) are unit-tested with `bun test`.
 
 Auth bypass: `DISABLE_AUTH=true` must be explicitly set. If neither `DISABLE_AUTH` nor `MCP_SECRET` is set, all requests are denied (401).
 
-### CI / Preview Testing
+### CI Integration Testing
 
-The `preview.yml` workflow runs MCP tests after every preview deploy:
+The `ci.yml` workflow runs MCP integration tests in the `integration` job (after `quality`):
 
-1. **MCP Health Check** — `curl /health`
-2. **MCP Integration Test** — runs **only if** health check succeeded, with preview URL + secret
-3. **PR Comment** — pass/fail result posted as PR comment
-4. **Commit Status** — visible check in PR checks list
+1. Starts `wrangler dev --remote` with Cloudflare credentials (AI/Vectorize available)
+2. Runs all MCP tests with `WORKER_URL=http://localhost:8787 MCP_SECRET=ci-secret`
+3. Kills the dev server
+
+The `preview.yml` workflow only handles Cloudflare deployment + PR URL comment.
 
 ## Storage
 
