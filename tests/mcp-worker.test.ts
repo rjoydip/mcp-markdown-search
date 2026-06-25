@@ -3,12 +3,11 @@ import pkg from "../package.json";
 
 const WORKER_URL = process.env.WORKER_URL || "";
 const MCP_SECRET = process.env.MCP_SECRET || "";
-const DISABLE_AUTH = process.env.DISABLE_AUTH === "true";
 const baseUrl = WORKER_URL.replace(/\/$/, "");
 
 const describeEndpoints = WORKER_URL ? describe : describe.skip;
 const describeAuthOn = WORKER_URL && MCP_SECRET ? describe : describe.skip;
-const describeAuthOff = WORKER_URL && DISABLE_AUTH && !MCP_SECRET ? describe : describe.skip;
+const describeAuthOff = WORKER_URL && !MCP_SECRET ? describe : describe.skip;
 
 function headers(extra: Record<string, string> = {}): Record<string, string> {
   if (MCP_SECRET) {
@@ -172,8 +171,8 @@ describeAuthOn("MCP Auth (enforced)", () => {
 });
 
 describeAuthOff("MCP Auth (bypassed)", () => {
-  // Runs when DISABLE_AUTH=true and MCP_SECRET is unset.
-  // Worker bypasses auth, but requests fail with 500 when AI/Vectorize bindings are unavailable.
+  // Runs when MCP_SECRET is unset — Worker bypasses auth.
+  // Requests proceed to handler logic, which fails with 500 when AI/Vectorize bindings are unavailable.
 
   test("POST /search returns 500 without auth header (AI missing)", async () => {
     const res = await fetch(baseUrl + "/search", {

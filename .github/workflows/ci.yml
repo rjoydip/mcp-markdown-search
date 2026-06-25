@@ -35,7 +35,7 @@ jobs:
           bun-version: latest
       - run: bun install
 
-      - name: Start dev server (remote)
+      - name: Start dev server
         id: dev-server
         continue-on-error: true
         run: |

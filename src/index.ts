@@ -10,14 +10,12 @@ interface Env {
   CHUNK_SIZE?: string;
   CHUNK_OVERLAP?: string;
   MARKDOWN_DIR?: string;
-  DISABLE_AUTH?: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
 
 function authenticate(env: Env, request: Request): boolean {
-  if (env.DISABLE_AUTH === "true") return true;
-  if (!env.MCP_SECRET) return false;
+  if (!env.MCP_SECRET) return true;
   const secret = request.headers.get("X-MCP-Secret");
   return secret === env.MCP_SECRET;
 }

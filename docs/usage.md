@@ -117,12 +117,11 @@ Index all markdown files in `MARKDOWN_DIR`.
 
 Set via `wrangler secret put`:
 
-| Variable        | Default | Description                     |
-| --------------- | ------- | ------------------------------- |
-| `MCP_SECRET`    | -       | Auth secret (required for auth) |
-| `CHUNK_SIZE`    | `1000`  | Max chunk size                  |
-| `CHUNK_OVERLAP` | `100`   | Chunk overlap                   |
-| `DISABLE_AUTH`  | -       | Set to `"true"` to bypass auth  |
+| Variable        | Default | Description            |
+| --------------- | ------- | ---------------------- |
+| `MCP_SECRET`    | -       | Auth secret (required) |
+| `CHUNK_SIZE`    | `1000`  | Max chunk size         |
+| `CHUNK_OVERLAP` | `100`   | Chunk overlap          |
 
 ## Examples
 
@@ -167,18 +166,18 @@ Set via `wrangler secret put`:
 
 Tests the Cloudflare Worker endpoints via live HTTP. Test suites auto-select based on env vars:
 
-| Suite                 | Env vars                           | What it tests                            |
-| --------------------- | ---------------------------------- | ---------------------------------------- |
-| `MCP Endpoints`       | `WORKER_URL`                       | Routes, validation, handlers             |
-| `MCP Auth (enforced)` | `WORKER_URL` + `MCP_SECRET`        | `401` for missing/wrong `X-MCP-Secret`   |
-| `MCP Auth (bypassed)` | `WORKER_URL` + `DISABLE_AUTH=true` | `500` from missing AI/Vectorize bindings |
+| Suite                 | Env vars                    | What it tests                            |
+| --------------------- | --------------------------- | ---------------------------------------- |
+| `MCP Endpoints`       | `WORKER_URL`                | Routes, validation, handlers             |
+| `MCP Auth (enforced)` | `WORKER_URL` + `MCP_SECRET` | `401` for missing/wrong `X-MCP-Secret`   |
+| `MCP Auth (bypassed)` | `WORKER_URL` only           | `500` from missing AI/Vectorize bindings |
 
 ```sh
-# Terminal 1: start worker with auth bypassed
-bun run dev:test
+# Terminal 1: start worker (auth bypassed by default)
+bun run dev
 
 # Terminal 2: run endpoint + bypassed-auth tests
-bun run test:mcp:bypass
+bun run test:mcp:local
 ```
 
 ```sh
@@ -199,7 +198,6 @@ The `ci.yml` workflow runs MCP integration tests in the `integration` job:
 
 ### Auth Behavior
 
-- Auth **bypassed** when `DISABLE_AUTH=true` set on Worker (local dev default)
-- Auth **enforced** when `MCP_SECRET` is set (production default)
-- If **neither** is set, all requests denied (`401`) — fail-closed
+- Auth **bypassed** when `MCP_SECRET` is not set on the Worker (local dev default via `bun run dev`)
+- Auth **enforced** when `MCP_SECRET` is set (via `dev:auth`, or deployed via `wrangler secret put`)
 - Auth tests split into two suites: `MCP Auth (enforced)` expects `401`, `MCP Auth (bypassed)` expects `500` (from missing AI/Vectorize)
