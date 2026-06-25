@@ -18,7 +18,7 @@ function authenticate(env: Env, request: Request): boolean {
   return secret === env.MCP_SECRET;
 }
 
-async function embedQuery(text: string, env: Env): Promise<number[]> {
+async function generateEmbedding(text: string, env: Env): Promise<number[]> {
   const res = (await env.AI.run("@cf/baai/bge-base-en-v1.5", { text })) as { data: number[] };
   return res.data;
 }
@@ -65,7 +65,16 @@ app.post("/search", async (c) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  const { query, topK = 5, scoreThreshold = 0.5 } = await c.req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
+
+  const { query } = body;
+  const topK = Math.max(1, Math.min(Number(body.topK) || 5, 100));
+  const scoreThreshold = Math.max(0, Math.min(Number(body.scoreThreshold ?? 0.5), 1));
 
   if (!query) {
     return c.json({ error: "query is required" }, 400);
@@ -73,7 +82,7 @@ app.post("/search", async (c) => {
 
   let embedding: number[];
   try {
-    embedding = await embedQuery(query, env);
+    embedding = await generateEmbedding(query as string, env);
   } catch {
     return c.json({ error: "Failed to generate embedding for query" }, 500);
   }
@@ -106,7 +115,7 @@ async function generateVectors(
 > {
   return Promise.all(
     chunks.map(async (chunk, index) => {
-      const embedding = await embedQuery(chunk, env);
+      const embedding = await generateEmbedding(chunk, env);
       return {
         id: buildVectorId(filePath, index),
         values: embedding,
@@ -128,7 +137,14 @@ app.post("/index", async (c) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  const { filePath, content } = await c.req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
+
+  const { filePath, content } = body as { filePath?: string; content?: string };
 
   if (!filePath) {
     return c.json({ error: "filePath is required" }, 400);

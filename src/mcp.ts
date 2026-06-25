@@ -175,7 +175,6 @@ async function handleIndexAllToVector(): Promise<ToolResult> {
   const files = walkMarkdown(markdownDir);
   const results: { file: string; status: string; error?: string }[] = [];
 
-  // fallow-ignore-next-line
   for (let i = 0; i < files.length; i += BATCH_CONCURRENCY) {
     const batch = files.slice(i, i + BATCH_CONCURRENCY);
     // eslint-disable-next-line no-await-in-loop
@@ -233,7 +232,7 @@ async function searchMarkdown(
   if (!Bun.which("rg")) {
     return "ripgrep (rg) is not installed. Install it to use search.";
   }
-  const proc = Bun.spawn(["rg", ...args], { stdout: "pipe", stderr: "pipe" });
+  const proc = Bun.spawn(["rg", ...args], { stdout: "pipe", stderr: "ignore" });
   const output = await new Response(proc.stdout as ReadableStream<Uint8Array>).text();
   return output || "No results found";
 }

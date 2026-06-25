@@ -73,6 +73,6 @@ export class WorkerClient {
       throw new Error(`Worker ${route} returned non-object response`);
     }
 
-    return data as Promise<T>;
+    return data as T;
   }
 }
