@@ -17,12 +17,15 @@ bun run cli --read ./docs/usage.md
 
 ```sh
 bun run dev              # Start Cloudflare Worker dev server
+bun run dev:auth         # Start Worker with MCP_SECRET for auth testing
 bun run dev:mcp          # Start MCP server in watch mode
 bun run cli              # Run CLI tool
 bun run deploy           # Deploy Worker to Cloudflare
 bun run deploy:preview   # Deploy to preview environment
 bun run test             # Run all tests
-bun run test:watch       # Run tests in watch mode
+bun run test:mcp         # Run MCP worker HTTP tests (requires WORKER_URL)
+bun run test:mcp:local   # Run MCP tests against localhost:8787
+bun run test:mcp:auth    # Run MCP tests with auth against localhost:8787
 bun run lint             # Lint with oxlint
 bun run lint:fix         # Lint fix + format
 bun run format           # Format with oxfmt
@@ -107,11 +110,11 @@ MARKDOWN_DIR=./docs bun run dev:mcp
 
 Required environment variables:
 
-| Variable        | Required | Description                               |
-| --------------- | -------- | ----------------------------------------- |
-| `MARKDOWN_DIR`  | Yes      | Directory to search                       |
-| `WORKER_URL`    | No       | Cloudflare Worker URL for semantic search |
-| `WORKER_SECRET` | No       | Auth secret for Worker                    |
+| Variable       | Required | Description                               |
+| -------------- | -------- | ----------------------------------------- |
+| `MARKDOWN_DIR` | Yes      | Directory to search                       |
+| `WORKER_URL`   | No       | Cloudflare Worker URL for semantic search |
+| `MCP_SECRET`   | No       | Auth secret for Worker                    |
 
 ## Cloudflare Worker Mode
 

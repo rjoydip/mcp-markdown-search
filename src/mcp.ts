@@ -5,18 +5,18 @@ import { readFileSync } from "fs";
 import { resolve, relative, isAbsolute } from "path";
 import { walkMarkdown, isMarkdownFile } from "./lib/walker.js";
 import { WorkerClient } from "./lib/worker-client.js";
+import pkg from "../package.json";
 
 const markdownDir = process.env.MARKDOWN_DIR || "./docs";
 const workerUrl = process.env.WORKER_URL || "";
-const workerSecret = process.env.WORKER_SECRET || "";
+const mcpSecret = process.env.MCP_SECRET || "";
 
-const workerClient =
-  workerUrl && workerSecret ? new WorkerClient({ workerUrl, workerSecret }) : null;
+const workerClient = workerUrl && mcpSecret ? new WorkerClient({ workerUrl, mcpSecret }) : null;
 
 const server = new Server(
   {
     name: "mcp-markdown-search",
-    version: "1.0.0",
+    version: pkg.version,
   },
   {
     capabilities: {
@@ -99,7 +99,7 @@ type ToolResult = { content: [{ type: "text"; text: string }]; isError?: boolean
 function notConfigured(): ToolResult {
   const missing = [];
   if (!workerUrl) missing.push("WORKER_URL");
-  if (!workerSecret) missing.push("WORKER_SECRET");
+  if (!mcpSecret) missing.push("MCP_SECRET");
   return {
     content: [
       { type: "text", text: `Semantic search not configured: missing ${missing.join(", ")}` },

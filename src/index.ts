@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { VectorizeIndex, Ai } from "@cloudflare/workers-types";
 import { splitIntoChunks, buildVectorId } from "./lib/chunker.js";
+import pkg from "../package.json";
 
 interface Env {
   VECTORIZE: VectorizeIndex;
@@ -14,6 +15,7 @@ interface Env {
 const app = new Hono<{ Bindings: Env }>();
 
 function authenticate(env: Env, request: Request): boolean {
+  if (!env.MCP_SECRET) return true;
   const secret = request.headers.get("X-MCP-Secret");
   return secret === env.MCP_SECRET;
 }
@@ -26,7 +28,7 @@ async function generateEmbedding(text: string, env: Env): Promise<number[]> {
 app.get("/", (c) => {
   return c.json({
     name: "mcp-markdown-search",
-    version: "1.0.0",
+    version: pkg.version,
     description:
       "MCP server + Cloudflare Worker for markdown search with full-text and semantic capabilities",
     endpoints: {
@@ -55,7 +57,7 @@ app.get("/", (c) => {
 });
 
 app.get("/health", (c) => {
-  return c.json({ status: "ok", version: "1.0.0" });
+  return c.json({ status: "ok", version: pkg.version });
 });
 
 app.post("/search", async (c) => {

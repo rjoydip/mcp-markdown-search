@@ -1,6 +1,6 @@
 export interface WorkerClientConfig {
   workerUrl: string;
-  workerSecret: string;
+  mcpSecret: string;
 }
 
 export interface SemanticSearchResult {
@@ -48,16 +48,16 @@ export class WorkerClient {
   }
 
   private async post<T>(route: string, body: unknown): Promise<T> {
-    const { workerUrl, workerSecret } = this.config;
+    const { workerUrl, mcpSecret } = this.config;
 
     if (!workerUrl) throw new Error("WORKER_URL env var is not set.");
-    if (!workerSecret) throw new Error("WORKER_SECRET env var is not set.");
+    if (!mcpSecret) throw new Error("MCP_SECRET env var is not set.");
 
     const res = await fetch(`${workerUrl}${route}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-MCP-Secret": workerSecret,
+        "X-MCP-Secret": mcpSecret,
       },
       body: JSON.stringify(body),
     });

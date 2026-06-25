@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import app from "../src/index";
+import pkg from "../package.json";
 
 describe("Worker Routes - Root", () => {
   const env = {
@@ -13,7 +14,7 @@ describe("Worker Routes - Root", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.name).toBe("mcp-markdown-search");
-    expect(body.version).toBe("1.0.0");
+    expect(body.version).toBe(pkg.version);
     expect(body.endpoints).toBeDefined();
     expect(body.endpoints.health).toBeDefined();
     expect(body.endpoints.search).toBeDefined();

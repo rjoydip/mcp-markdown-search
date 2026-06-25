@@ -5,7 +5,6 @@
 [![Bun](https://img.shields.io/badge/Bun-1.3+-green)](https://bun.sh)
 [![Fallow Health](.artifacts/fallow-health.svg)](https://docs.fallow.tools/)
 [![CI](https://github.com/rjoydip/mcp-markdown-search/actions/workflows/ci.yml/badge.svg)](https://github.com/rjoydip/mcp-markdown-search/actions/workflows/ci.yml)
-[![Preview](https://github.com/rjoydip/mcp-markdown-search/actions/workflows/preview.yml/badge.svg)](https://github.com/rjoydip/mcp-markdown-search/actions/workflows/preview.yml)
 
 MCP server for searching markdown files with full-text and semantic search capabilities.
 
@@ -44,16 +43,20 @@ curl https://<preview-url>/health
 
 ## Scripts
 
-| Script              | Description                 |
-| ------------------- | --------------------------- |
-| `bun run dev`       | Start Cloudflare Worker dev |
-| `bun run dev:mcp`   | Start MCP server (stdio)    |
-| `bun run deploy`    | Deploy to Cloudflare        |
-| `bun run test`      | Run tests                   |
-| `bun run lint`      | Lint with oxlint            |
-| `bun run format`    | Format with oxfmt           |
-| `bun run typecheck` | TypeScript check            |
-| `bun run fallow`    | Code analysis               |
+| Script                   | Description                     |
+| ------------------------ | ------------------------------- |
+| `bun run dev`            | Start Cloudflare Worker dev     |
+| `bun run dev:auth`       | Start Worker with MCP_SECRET    |
+| `bun run dev:mcp`        | Start MCP server (stdio)        |
+| `bun run deploy`         | Deploy to Cloudflare            |
+| `bun run test`           | Run all tests                   |
+| `bun run test:mcp`       | Run MCP worker HTTP tests       |
+| `bun run test:mcp:local` | Run MCP tests locally (no auth) |
+| `bun run test:mcp:auth`  | Run MCP tests with auth         |
+| `bun run lint`           | Lint with oxlint                |
+| `bun run format`         | Format with oxfmt               |
+| `bun run typecheck`      | TypeScript check                |
+| `bun run fallow`         | Code analysis                   |
 
 ## Tech Stack
 
