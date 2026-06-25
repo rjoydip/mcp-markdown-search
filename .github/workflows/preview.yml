@@ -90,6 +90,8 @@ jobs:
           command: deploy --env preview --branch ${{ github.head_ref || github.ref_name }}
           secrets: |
             MCP_SECRET
+        env:
+          MCP_SECRET: ${{ secrets.MCP_SECRET }}
 
       - name: Get preview URL
         id: url
