@@ -1,7 +1,10 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "fs";
-import { join } from "path";
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync } from "fs";
+import { join, resolve, relative, isAbsolute } from "path";
 import { tmpdir } from "os";
+import { walkMarkdown, isMarkdownFile } from "../src/lib/walker";
+import { splitIntoChunks, buildVectorId } from "../src/lib/chunker";
+import { WorkerClient } from "../src/lib/worker-client";
 
 describe("MCP Integration Tests", () => {
   let tempDir: string;
@@ -29,8 +32,7 @@ describe("MCP Integration Tests", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  test("walkMarkdown finds all markdown files recursively", async () => {
-    const { walkMarkdown } = await import("../src/lib/walker");
+  test("walkMarkdown finds all markdown files recursively", () => {
     const files = walkMarkdown(tempDir);
     expect(files).toHaveLength(3);
     testFiles.forEach((file) => {
@@ -38,30 +40,55 @@ describe("MCP Integration Tests", () => {
     });
   });
 
-  test("splitIntoChunks splits on headings", async () => {
-    const { splitIntoChunks } = await import("../src/lib/chunker");
+  test("splitIntoChunks splits on headings", () => {
     const content = `# Section 1\n\nContent 1\n\n## Section 2\n\nContent 2`;
     const chunks = splitIntoChunks(content);
     expect(chunks.length).toBeGreaterThanOrEqual(2);
   });
 
-  test("buildVectorId creates safe IDs", async () => {
-    const { buildVectorId } = await import("../src/lib/chunker");
+  test("buildVectorId creates safe IDs", () => {
     const id = buildVectorId("/path/to/file.md", 0);
     expect(id).toMatch(/^[a-zA-Z0-9._-]+__chunk_0$/);
     expect(id).not.toContain("/");
   });
+
+  test("handleReadMarkdownFile logic reads markdown from allowed dir", () => {
+    const filePath = "test1.md";
+    const base = resolve(tempDir);
+    const resolved = resolve(base, filePath);
+    const rel = relative(base, resolved);
+    expect(!rel.startsWith("..") && !isAbsolute(rel)).toBe(true);
+    expect(isMarkdownFile(filePath)).toBe(true);
+    const content = readFileSync(resolved, "utf-8");
+    expect(content).toContain("Test Document");
+  });
+
+  test("handleReadMarkdownFile rejects non-markdown extension", () => {
+    expect(isMarkdownFile("data.txt")).toBe(false);
+    expect(isMarkdownFile("script.js")).toBe(false);
+  });
+
+  test("handleReadMarkdownFile rejects path traversal", () => {
+    const base = resolve(tempDir);
+    const traversal = resolve(base, "../../etc/passwd");
+    const rel = relative(base, traversal);
+    expect(rel.startsWith("..") || isAbsolute(rel)).toBe(true);
+  });
+
+  test("handleListMarkdownFiles logic lists .md/.mdx files", () => {
+    const files = walkMarkdown(tempDir);
+    expect(files.every((f) => f.endsWith(".md"))).toBe(true);
+    expect(files).toContain(join(tempDir, "test1.md"));
+  });
 });
 
 describe("WorkerClient Integration", () => {
-  test("WorkerClient requires both URL and secret", async () => {
-    const { WorkerClient } = await import("../src/lib/worker-client");
+  test("WorkerClient requires both URL and secret", () => {
     const client = new WorkerClient({ workerUrl: "http://localhost:8787", workerSecret: "secret" });
     expect(client).toBeDefined();
   });
 
   test("WorkerClient post method validates URL", async () => {
-    const { WorkerClient } = await import("../src/lib/worker-client");
     const client = new WorkerClient({ workerUrl: "", workerSecret: "test" });
 
     let errorThrown = false;
@@ -74,7 +101,6 @@ describe("WorkerClient Integration", () => {
   });
 
   test("WorkerClient post method validates secret", async () => {
-    const { WorkerClient } = await import("../src/lib/worker-client");
     const client = new WorkerClient({ workerUrl: "http://localhost", workerSecret: "" });
 
     let errorThrown = false;
@@ -88,9 +114,7 @@ describe("WorkerClient Integration", () => {
 });
 
 describe("Chunking Integration", () => {
-  test("chunks markdown file into searchable pieces", async () => {
-    const { splitIntoChunks } = await import("../src/lib/chunker");
-
+  test("chunks markdown file into searchable pieces", () => {
     const longContent = `
 # Introduction
 
@@ -119,9 +143,7 @@ Final section with lots of content that should be split across multiple chunks b
     });
   });
 
-  test("preserves heading structure in chunks", async () => {
-    const { splitIntoChunks } = await import("../src/lib/chunker");
-
+  test("preserves heading structure in chunks", () => {
     const content = `# Main Title
 
 Introduction paragraph.
@@ -155,15 +177,13 @@ Content C.
     expect(hasFirstSection || hasSubsection).toBe(true);
   });
 
-  test("handles empty content", async () => {
-    const { splitIntoChunks } = await import("../src/lib/chunker");
+  test("handles empty content", () => {
     expect(splitIntoChunks("")).toEqual([]);
     expect(splitIntoChunks("   ")).toEqual([]);
     expect(splitIntoChunks("  \n  ")).toEqual([]);
   });
 
-  test("filters out very short chunks", async () => {
-    const { splitIntoChunks } = await import("../src/lib/chunker");
+  test("filters out very short chunks", () => {
     const chunks = splitIntoChunks("Hi", 1000, 100);
     expect(chunks).toEqual([]);
   });
@@ -192,21 +212,18 @@ describe("File Discovery Integration", () => {
     rmSync(filterDir, { recursive: true, force: true });
   });
 
-  test("discovers files in nested directories", async () => {
-    const { walkMarkdown } = await import("../src/lib/walker");
+  test("discovers files in nested directories", () => {
     const files = walkMarkdown(nestedDir);
     expect(files).toHaveLength(2);
   });
 
-  test("filters non-markdown files", async () => {
-    const { walkMarkdown } = await import("../src/lib/walker");
+  test("filters non-markdown files", () => {
     const files = walkMarkdown(filterDir);
     expect(files).toHaveLength(2);
     expect(files.every((f: string) => f.endsWith(".md") || f.endsWith(".mdx"))).toBe(true);
   });
 
-  test("handles non-existent directory gracefully", async () => {
-    const { walkMarkdown } = await import("../src/lib/walker");
+  test("handles non-existent directory gracefully", () => {
     const files = walkMarkdown("/non/existent/path");
     expect(files).toEqual([]);
   });

@@ -66,6 +66,30 @@ app.post("/search", async (c) => {
   });
 });
 
+async function generateVectors(
+  chunks: string[],
+  filePath: string,
+  env: Env,
+): Promise<
+  { id: string; values: number[]; metadata: Record<string, string | number | boolean | string[]> }[]
+> {
+  return Promise.all(
+    chunks.map(async (chunk, index) => {
+      const embedding = await embedQuery(chunk, env);
+      return {
+        id: buildVectorId(filePath, index),
+        values: embedding,
+        metadata: {
+          filePath,
+          chunkIndex: index,
+          totalChunks: chunks.length,
+          preview: chunk.slice(0, 200),
+        },
+      };
+    }),
+  );
+}
+
 app.post("/index", async (c) => {
   const env = c.env as Env;
 
@@ -87,23 +111,13 @@ app.post("/index", async (c) => {
 
   const chunks = splitIntoChunks(content, chunkSize, chunkOverlap);
 
-  let vectors: { id: string; values: number[]; metadata: Record<string, string | number | boolean | string[]> }[];
+  let vectors: {
+    id: string;
+    values: number[];
+    metadata: Record<string, string | number | boolean | string[]>;
+  }[];
   try {
-    vectors = await Promise.all(
-      chunks.map(async (chunk, index) => {
-        const embedding = await embedQuery(chunk, env);
-        return {
-          id: buildVectorId(filePath, index),
-          values: embedding,
-          metadata: {
-            filePath,
-            chunkIndex: index,
-            totalChunks: chunks.length,
-            preview: chunk.slice(0, 200),
-          },
-        };
-      }),
-    );
+    vectors = await generateVectors(chunks, filePath, env);
   } catch {
     return c.json({ error: "Failed to generate embeddings for chunks" }, 500);
   }

@@ -54,9 +54,14 @@ async function runSearch(query: string, dir: string, caseSensitive: boolean): Pr
     return;
   }
 
+  if (!Bun.which("rg")) {
+    console.error("ripgrep (rg) is not installed. Install it to use search.");
+    return;
+  }
+
   const args = caseSensitive ? [query, ...files] : ["-i", query, ...files];
   const proc = Bun.spawn(["rg", ...args], { stdout: "pipe", stderr: "pipe" });
-  const output = await new Response(proc.stdout).text();
+  const output = await new Response(proc.stdout as ReadableStream<Uint8Array>).text();
 
   if (output) {
     process.stdout.write(output);
@@ -100,6 +105,19 @@ function parseCliArgs(argv: string[]): CliOptions {
   return parsed.values as CliOptions;
 }
 
+async function dispatchCommand(options: CliOptions, dir: string): Promise<void> {
+  if (options.search !== undefined) {
+    await runSearch(options.search, dir, options.case ?? false);
+  } else if (options.list) {
+    runList(dir);
+  } else if (options.read) {
+    runRead(options.read, dir);
+  } else {
+    console.error("No command specified. Use --help for usage.");
+    process.exit(1);
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
@@ -119,19 +137,10 @@ async function main() {
 
   const dir = options.dir || process.env.MARKDOWN_DIR || ".";
 
-  if (options.search !== undefined) {
-    await runSearch(options.search, dir, options.case ?? false);
-  } else if (options.list) {
-    runList(dir);
-  } else if (options.read) {
-    try {
-      runRead(options.read, dir);
-    } catch (e) {
-      console.error(String(e));
-      process.exit(1);
-    }
-  } else {
-    console.error("No command specified. Use --help for usage.");
+  try {
+    await dispatchCommand(options, dir);
+  } catch (e) {
+    console.error(String(e));
     process.exit(1);
   }
 }

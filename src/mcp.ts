@@ -2,8 +2,8 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { readFileSync } from "fs";
-import { resolve } from "path";
-import { walkMarkdown } from "./lib/walker.js";
+import { resolve, relative, isAbsolute } from "path";
+import { walkMarkdown, isMarkdownFile } from "./lib/walker.js";
 import { WorkerClient } from "./lib/worker-client.js";
 
 const markdownDir = process.env.MARKDOWN_DIR || ".";
@@ -101,7 +101,9 @@ function notConfigured(): ToolResult {
   if (!workerUrl) missing.push("WORKER_URL");
   if (!workerSecret) missing.push("WORKER_SECRET");
   return {
-    content: [{ type: "text", text: `Semantic search not configured: missing ${missing.join(", ")}` }],
+    content: [
+      { type: "text", text: `Semantic search not configured: missing ${missing.join(", ")}` },
+    ],
     isError: true,
   };
 }
@@ -128,10 +130,11 @@ function handleListMarkdownFiles(): ToolResult {
   return { content: [{ type: "text", text: files.join("\n") }] };
 }
 
-function resolveSafePath(userPath: string): string {
-  const base = resolve(markdownDir);
+function resolveSafePath(userPath: string, baseDir?: string): string {
+  const base = resolve(baseDir ?? markdownDir);
   const resolved = resolve(base, userPath);
-  if (!resolved.startsWith(base + "\\") && !resolved.startsWith(base + "/") && resolved !== base) {
+  const rel = relative(base, resolved);
+  if (rel.startsWith("..") || isAbsolute(rel)) {
     throw new Error("Access denied: path is outside the allowed directory");
   }
   return resolved;
@@ -139,6 +142,12 @@ function resolveSafePath(userPath: string): string {
 
 function handleReadMarkdownFile(args: { filePath: string }): ToolResult {
   const { filePath } = args;
+  if (!isMarkdownFile(filePath)) {
+    return {
+      content: [{ type: "text", text: "Only .md and .mdx files are supported" }],
+      isError: true,
+    };
+  }
   const resolved = resolveSafePath(filePath);
   const content = readFileSync(resolved, "utf-8");
   return { content: [{ type: "text", text: content }] };
@@ -147,21 +156,45 @@ function handleReadMarkdownFile(args: { filePath: string }): ToolResult {
 async function handleIndexFileToVector(args: { filePath: string }): Promise<ToolResult> {
   if (!workerClient) return notConfigured();
   const { filePath } = args;
+  if (!isMarkdownFile(filePath)) {
+    return {
+      content: [{ type: "text", text: "Only .md and .mdx files are supported" }],
+      isError: true,
+    };
+  }
   const resolved = resolveSafePath(filePath);
   const content = readFileSync(resolved, "utf-8");
   const response = await workerClient.index(resolved, content);
   return { content: [{ type: "text", text: JSON.stringify(response, null, 2) }] };
 }
 
+const BATCH_CONCURRENCY = 5;
+
 async function handleIndexAllToVector(): Promise<ToolResult> {
   if (!workerClient) return notConfigured();
   const files = walkMarkdown(markdownDir);
-  const results = await Promise.all(
-    files.map(async (file) => {
-      const content = readFileSync(file, "utf-8");
-      return workerClient.index(file, content);
-    }),
-  );
+  const results: { file: string; status: string; error?: string }[] = [];
+
+  // fallow-ignore-next-line
+  for (let i = 0; i < files.length; i += BATCH_CONCURRENCY) {
+    const batch = files.slice(i, i + BATCH_CONCURRENCY);
+    // eslint-disable-next-line no-await-in-loop
+    const settled = await Promise.allSettled(
+      batch.map(async (file) => {
+        const content = readFileSync(file, "utf-8");
+        return workerClient.index(file, content);
+      }),
+    );
+    for (let j = 0; j < batch.length; j++) {
+      const r = settled[j];
+      results.push({
+        file: batch[j],
+        status: r.status === "fulfilled" ? "ok" : "error",
+        error: r.status === "rejected" ? String(r.reason) : undefined,
+      });
+    }
+  }
+
   return { content: [{ type: "text", text: JSON.stringify(results, null, 2) }] };
 }
 
@@ -197,8 +230,11 @@ async function searchMarkdown(
   caseSensitive: boolean,
 ): Promise<string> {
   const args = caseSensitive ? [query, ...files] : ["-i", query, ...files];
+  if (!Bun.which("rg")) {
+    return "ripgrep (rg) is not installed. Install it to use search.";
+  }
   const proc = Bun.spawn(["rg", ...args], { stdout: "pipe", stderr: "pipe" });
-  const output = await new Response(proc.stdout).text();
+  const output = await new Response(proc.stdout as ReadableStream<Uint8Array>).text();
   return output || "No results found";
 }
 

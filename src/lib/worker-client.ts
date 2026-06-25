@@ -67,6 +67,12 @@ export class WorkerClient {
       throw new Error(`Worker ${route} failed (${res.status}): ${text}`);
     }
 
-    return res.json() as Promise<T>;
+    const data = await res.json();
+
+    if (typeof data !== "object" || data === null) {
+      throw new Error(`Worker ${route} returned non-object response`);
+    }
+
+    return data as Promise<T>;
   }
 }

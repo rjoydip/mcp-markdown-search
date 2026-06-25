@@ -2,7 +2,7 @@
  * splitIntoChunks — semantic text chunker for markdown content.
  *
  * Strategy:
- *   1. Split on markdown headings (# / ## / ###) to keep sections intact.
+ *   1. Split on markdown headings (# through ######) to keep sections intact.
  *   2. If a section exceeds `size`, use a sliding window with `overlap`.
  *   3. Drop trivially small chunks (< 20 chars).
  */
@@ -21,11 +21,13 @@ export function splitIntoChunks(
     if (section.length <= size) {
       if (section.trim()) chunks.push(section.trim());
     } else {
+      const step = Math.max(size - overlap, 1);
       let start = 0;
       while (start < section.length) {
-        const chunk = section.slice(start, start + size).trim();
+        const end = Math.min(start + size, section.length);
+        const chunk = section.slice(start, end).trim();
         if (chunk) chunks.push(chunk);
-        start += size - overlap;
+        start += step;
       }
     }
   }
@@ -38,6 +40,6 @@ export function splitIntoChunks(
  * IDs must be ASCII with no slashes or special characters.
  */
 export function buildVectorId(filePath: string, chunkIndex: number): string {
-  const safe = filePath.replace(/\//g, "__").replace(/[^a-zA-Z0-9.__-]/g, "_");
-  return `${safe}__chunk_${chunkIndex}`;
+  const encoded = Buffer.from(filePath, "utf-8").toString("base64url").replace(/=+$/, "");
+  return `${encoded}__chunk_${chunkIndex}`;
 }

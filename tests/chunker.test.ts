@@ -33,7 +33,10 @@ test("splitIntoChunks filters short chunks", () => {
 
 test("buildVectorId creates safe IDs", () => {
   const id = buildVectorId("/path/to/file.md", 0);
-  expect(id).toBe("__path__to__file.md__chunk_0");
+  const expected = Buffer.from("/path/to/file.md", "utf-8")
+    .toString("base64url")
+    .replace(/=+$/, "");
+  expect(id).toBe(`${expected}__chunk_0`);
   expect(id).not.toContain("/");
   expect(id).not.toContain("\\");
 });
