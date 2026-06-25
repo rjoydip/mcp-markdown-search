@@ -17,7 +17,7 @@ bun run cli --read ./docs/usage.md
 
 ```sh
 bun run dev              # Start Cloudflare Worker dev server
-bun run dev:test         # Start Worker with MCP_SECRET for auth testing
+bun run dev:auth         # Start Worker with MCP_SECRET for auth testing
 bun run dev:mcp          # Start MCP server in watch mode
 bun run cli              # Run CLI tool
 bun run deploy           # Deploy Worker to Cloudflare

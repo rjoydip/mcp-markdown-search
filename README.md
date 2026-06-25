@@ -46,7 +46,7 @@ curl https://<preview-url>/health
 | Script                   | Description                     |
 | ------------------------ | ------------------------------- |
 | `bun run dev`            | Start Cloudflare Worker dev     |
-| `bun run dev:test`       | Start Worker with MCP_SECRET    |
+| `bun run dev:auth`       | Start Worker with MCP_SECRET    |
 | `bun run dev:mcp`        | Start MCP server (stdio)        |
 | `bun run deploy`         | Deploy to Cloudflare            |
 | `bun run test`           | Run all tests                   |

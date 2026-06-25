@@ -74,8 +74,10 @@ describeEndpoints("MCP Endpoints", () => {
       headers: headers(),
       body: JSON.stringify({ query: "test query", topK: 5 }),
     });
-    expect(res.status).not.toBe(401);
-    expect(res.status).not.toBe(400);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body).toHaveProperty("results");
+    expect(Array.isArray(body.results)).toBe(true);
   });
 
   test("POST /index returns 400 when filePath is missing", async () => {
@@ -118,8 +120,9 @@ describeEndpoints("MCP Endpoints", () => {
         content: "# Test Document\n\nThis is test content.",
       }),
     });
-    expect(res.status).not.toBe(401);
-    expect(res.status).not.toBe(400);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body).toHaveProperty("indexed", true);
   });
 });
 
