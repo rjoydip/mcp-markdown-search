@@ -15,7 +15,7 @@ export function splitIntoChunks(
   if (!text?.trim()) return [];
 
   const chunks: string[] = [];
-  const sections = text.split(/(?=\n#{1,3} )/);
+  const sections = text.split(/(?=\n#{1,6} )/);
 
   for (const section of sections) {
     if (section.length <= size) {
@@ -38,6 +38,6 @@ export function splitIntoChunks(
  * IDs must be ASCII with no slashes or special characters.
  */
 export function buildVectorId(filePath: string, chunkIndex: number): string {
-  const safe = filePath.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const safe = filePath.replace(/\//g, "__").replace(/[^a-zA-Z0-9.__-]/g, "_");
   return `${safe}__chunk_${chunkIndex}`;
 }

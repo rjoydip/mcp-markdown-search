@@ -170,39 +170,43 @@ Content C.
 });
 
 describe("File Discovery Integration", () => {
-  test("discovers files in nested directories", () => {
-    const testDir = mkdtempSync(join(tmpdir(), "mcp-nested-"));
-    const nestedDir = join(testDir, "a", "b", "c");
-    mkdirSync(nestedDir, { recursive: true });
+  let nestedDir: string;
+  let filterDir: string;
 
-    writeFileSync(join(testDir, "root.md"), "# Root");
-    writeFileSync(join(nestedDir, "deep.md"), "# Deep");
+  beforeAll(() => {
+    nestedDir = mkdtempSync(join(tmpdir(), "mcp-nested-"));
+    const deepDir = join(nestedDir, "a", "b", "c");
+    mkdirSync(deepDir, { recursive: true });
+    writeFileSync(join(nestedDir, "root.md"), "# Root");
+    writeFileSync(join(deepDir, "deep.md"), "# Deep");
 
-    const { walkMarkdown } = require("../src/lib/walker");
-    const files = walkMarkdown(testDir);
+    filterDir = mkdtempSync(join(tmpdir(), "mcp-filter-"));
+    writeFileSync(join(filterDir, "document.md"), "# Doc");
+    writeFileSync(join(filterDir, "readme.mdx"), "# MDX");
+    writeFileSync(join(filterDir, "data.txt"), "# TXT");
+    writeFileSync(join(filterDir, "script.js"), "console.log('js')");
+  });
 
-    rmSync(testDir, { recursive: true, force: true });
+  afterAll(() => {
+    rmSync(nestedDir, { recursive: true, force: true });
+    rmSync(filterDir, { recursive: true, force: true });
+  });
+
+  test("discovers files in nested directories", async () => {
+    const { walkMarkdown } = await import("../src/lib/walker");
+    const files = walkMarkdown(nestedDir);
     expect(files).toHaveLength(2);
   });
 
-  test("filters non-markdown files", () => {
-    const testDir = mkdtempSync(join(tmpdir(), "mcp-filter-"));
-
-    writeFileSync(join(testDir, "document.md"), "# Doc");
-    writeFileSync(join(testDir, "readme.mdx"), "# MDX");
-    writeFileSync(join(testDir, "data.txt"), "# TXT");
-    writeFileSync(join(testDir, "script.js"), "console.log('js')");
-
-    const { walkMarkdown } = require("../src/lib/walker");
-    const files = walkMarkdown(testDir);
-
-    rmSync(testDir, { recursive: true, force: true });
+  test("filters non-markdown files", async () => {
+    const { walkMarkdown } = await import("../src/lib/walker");
+    const files = walkMarkdown(filterDir);
     expect(files).toHaveLength(2);
     expect(files.every((f: string) => f.endsWith(".md") || f.endsWith(".mdx"))).toBe(true);
   });
 
-  test("handles non-existent directory gracefully", () => {
-    const { walkMarkdown } = require("../src/lib/walker");
+  test("handles non-existent directory gracefully", async () => {
+    const { walkMarkdown } = await import("../src/lib/walker");
     const files = walkMarkdown("/non/existent/path");
     expect(files).toEqual([]);
   });

@@ -75,18 +75,13 @@ function runList(dir: string): void {
 }
 
 function runRead(filePath: string, baseDir: string): void {
-  try {
-    const base = resolve(baseDir);
-    const resolved = resolve(base, filePath);
-    if (!resolved.startsWith(base + "\\") && !resolved.startsWith(base + "/") && resolved !== base) {
-      throw new Error("Access denied: path is outside the allowed directory");
-    }
-    const content = readFileSync(resolved, "utf-8");
-    console.log(content);
-  } catch {
-    console.error(`Error reading file: ${filePath}`);
-    process.exit(1);
+  const base = resolve(baseDir);
+  const resolved = resolve(base, filePath);
+  if (!resolved.startsWith(base + "\\") && !resolved.startsWith(base + "/") && resolved !== base) {
+    throw new Error("Access denied: path is outside the allowed directory");
   }
+  const content = readFileSync(resolved, "utf-8");
+  console.log(content);
 }
 
 function parseCliArgs(argv: string[]): CliOptions {
@@ -116,8 +111,8 @@ async function main() {
   let options: CliOptions;
   try {
     options = parseCliArgs(args);
-  } catch {
-    console.error("Invalid arguments");
+  } catch (e) {
+    console.error("Invalid arguments:", e);
     console.log(HELP);
     process.exit(1);
   }
@@ -129,7 +124,12 @@ async function main() {
   } else if (options.list) {
     runList(dir);
   } else if (options.read) {
-    runRead(options.read, dir);
+    try {
+      runRead(options.read, dir);
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
   } else {
     console.error("No command specified. Use --help for usage.");
     process.exit(1);
