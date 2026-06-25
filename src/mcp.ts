@@ -6,7 +6,7 @@ import { resolve, relative, isAbsolute } from "path";
 import { walkMarkdown, isMarkdownFile } from "./lib/walker.js";
 import { WorkerClient } from "./lib/worker-client.js";
 
-const markdownDir = process.env.MARKDOWN_DIR || ".";
+const markdownDir = process.env.MARKDOWN_DIR || "./docs";
 const workerUrl = process.env.WORKER_URL || "";
 const workerSecret = process.env.WORKER_SECRET || "";
 

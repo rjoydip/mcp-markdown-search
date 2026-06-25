@@ -135,7 +135,7 @@ async function main() {
     process.exit(1);
   }
 
-  const dir = options.dir || process.env.MARKDOWN_DIR || ".";
+  const dir = options.dir || process.env.MARKDOWN_DIR || "./docs";
 
   try {
     await dispatchCommand(options, dir);
