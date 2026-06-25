@@ -97,8 +97,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 type ToolResult = { content: [{ type: "text"; text: string }]; isError?: boolean };
 
 function notConfigured(): ToolResult {
+  const missing = [];
+  if (!workerUrl) missing.push("WORKER_URL");
+  if (!workerSecret) missing.push("WORKER_SECRET");
   return {
-    content: [{ type: "text", text: "Semantic search not configured" }],
+    content: [{ type: "text", text: `Semantic search not configured: missing ${missing.join(", ")}` }],
     isError: true,
   };
 }

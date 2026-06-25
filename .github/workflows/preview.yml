@@ -3,9 +3,6 @@ name: Preview
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-  push:
-    branches: ["**"]
-    tags-ignore: ["**"]
 
 concurrency:
   group: preview-${{ github.ref }}

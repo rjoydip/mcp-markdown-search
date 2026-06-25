@@ -89,6 +89,22 @@ function runRead(filePath: string, baseDir: string): void {
   }
 }
 
+function parseCliArgs(argv: string[]): CliOptions {
+  const parsed = parseArgs({
+    args: argv,
+    options: {
+      search: { type: "string", short: "s" },
+      list: { type: "boolean", short: "l" },
+      read: { type: "string", short: "r" },
+      case: { type: "boolean", short: "c" },
+      dir: { type: "string", short: "d" },
+      help: { type: "boolean", short: "h" },
+    },
+    allowPositionals: true,
+  });
+  return parsed.values as CliOptions;
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
@@ -99,19 +115,7 @@ async function main() {
 
   let options: CliOptions;
   try {
-    const parsed = parseArgs({
-      args,
-      options: {
-        search: { type: "string", short: "s" },
-        list: { type: "boolean", short: "l" },
-        read: { type: "string", short: "r" },
-        case: { type: "boolean", short: "c" },
-        dir: { type: "string", short: "d" },
-        help: { type: "boolean", short: "h" },
-      },
-      allowPositionals: true,
-    });
-    options = parsed.values as CliOptions;
+    options = parseCliArgs(args);
   } catch {
     console.error("Invalid arguments");
     console.log(HELP);

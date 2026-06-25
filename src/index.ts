@@ -36,8 +36,23 @@ app.post("/search", async (c) => {
 
   const { query, topK = 5, scoreThreshold = 0.5 } = await c.req.json();
 
-  const embedding = await embedQuery(query, env);
-  const results = await env.VECTORIZE.query(embedding, { topK });
+  if (!query) {
+    return c.json({ error: "query is required" }, 400);
+  }
+
+  let embedding: number[];
+  try {
+    embedding = await embedQuery(query, env);
+  } catch {
+    return c.json({ error: "Failed to generate embedding for query" }, 500);
+  }
+
+  let results: { matches: { id: string; score: number; metadata?: Record<string, unknown> }[] };
+  try {
+    results = await env.VECTORIZE.query(embedding, { topK });
+  } catch {
+    return c.json({ error: "Vector search failed" }, 500);
+  }
 
   const filtered = results.matches.filter((m) => m.score >= scoreThreshold);
 
@@ -60,28 +75,44 @@ app.post("/index", async (c) => {
 
   const { filePath, content } = await c.req.json();
 
+  if (!filePath) {
+    return c.json({ error: "filePath is required" }, 400);
+  }
+  if (!content) {
+    return c.json({ error: "content is required" }, 400);
+  }
+
   const chunkSize = parseInt(env.CHUNK_SIZE || "1000");
   const chunkOverlap = parseInt(env.CHUNK_OVERLAP || "100");
 
   const chunks = splitIntoChunks(content, chunkSize, chunkOverlap);
 
-  const vectors = await Promise.all(
-    chunks.map(async (chunk, index) => {
-      const embedding = await embedQuery(chunk, env);
-      return {
-        id: buildVectorId(filePath, index),
-        values: embedding,
-        metadata: {
-          filePath,
-          chunkIndex: index,
-          totalChunks: chunks.length,
-          preview: chunk.slice(0, 200),
-        },
-      };
-    }),
-  );
+  let vectors: { id: string; values: number[]; metadata: Record<string, string | number | boolean | string[]> }[];
+  try {
+    vectors = await Promise.all(
+      chunks.map(async (chunk, index) => {
+        const embedding = await embedQuery(chunk, env);
+        return {
+          id: buildVectorId(filePath, index),
+          values: embedding,
+          metadata: {
+            filePath,
+            chunkIndex: index,
+            totalChunks: chunks.length,
+            preview: chunk.slice(0, 200),
+          },
+        };
+      }),
+    );
+  } catch {
+    return c.json({ error: "Failed to generate embeddings for chunks" }, 500);
+  }
 
-  await env.VECTORIZE.insert(vectors);
+  try {
+    await env.VECTORIZE.insert(vectors);
+  } catch {
+    return c.json({ error: "Failed to insert vectors into index" }, 500);
+  }
 
   return c.json({
     indexed: true,
