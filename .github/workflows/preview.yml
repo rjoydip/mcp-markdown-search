@@ -95,28 +95,15 @@ jobs:
         env:
           MCP_SECRET: ${{ secrets.MCP_SECRET }}
 
-      - name: Get preview URL
-        id: url
-        run: |
-          WORKER_NAME="mcp-markdown-search-preview"
-          ACCOUNT_ID="${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"
-          URL="https://${WORKER_NAME}.${ACCOUNT_ID}.workers.dev"
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
-
-      - name: Find PR Number
-        id: pr
-        if: github.event_name == 'pull_request'
-        run: |
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-
       - name: Post PR Comment
         if: github.event_name == 'pull_request'
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.deployment-url }}
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            const previewUrl = '${{ steps.url.outputs.url }}';
-            const prNumber = '${{ steps.pr.outputs.number }}';
+            const previewUrl = process.env.PREVIEW_URL || 'Deploy failed';
+            const prNumber = '${{ github.event.pull_request.number }}';
             const sha = '${{ needs.ci-gate.outputs.sha }}';
 
             const body = '## Preview Deployment\n' +
@@ -166,18 +153,20 @@ jobs:
 
       - name: Update Commit Status
         if: github.event_name == 'push'
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.deployment-url }}
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            const previewUrl = '${{ steps.url.outputs.url }}';
+            const previewUrl = process.env.PREVIEW_URL || 'Deploy failed';
             const sha = '${{ needs.ci-gate.outputs.sha }}';
 
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: sha,
-              state: 'success',
+              state: previewUrl === 'Deploy failed' ? 'failure' : 'success',
               target_url: previewUrl,
-              description: 'Preview available',
+              description: previewUrl === 'Deploy failed' ? 'Preview deploy failed' : 'Preview available',
               context: 'preview/deploy',
             });
