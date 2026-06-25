@@ -2,6 +2,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { readFileSync } from "fs";
+import { resolve } from "path";
 import { walkMarkdown } from "./lib/walker.js";
 import { WorkerClient } from "./lib/worker-client.js";
 
@@ -124,17 +125,28 @@ function handleListMarkdownFiles(): ToolResult {
   return { content: [{ type: "text", text: files.join("\n") }] };
 }
 
+function resolveSafePath(userPath: string): string {
+  const base = resolve(markdownDir);
+  const resolved = resolve(base, userPath);
+  if (!resolved.startsWith(base + "\\") && !resolved.startsWith(base + "/") && resolved !== base) {
+    throw new Error("Access denied: path is outside the allowed directory");
+  }
+  return resolved;
+}
+
 function handleReadMarkdownFile(args: { filePath: string }): ToolResult {
   const { filePath } = args;
-  const content = readFileSync(filePath, "utf-8");
+  const resolved = resolveSafePath(filePath);
+  const content = readFileSync(resolved, "utf-8");
   return { content: [{ type: "text", text: content }] };
 }
 
 async function handleIndexFileToVector(args: { filePath: string }): Promise<ToolResult> {
   if (!workerClient) return notConfigured();
   const { filePath } = args;
-  const content = readFileSync(filePath, "utf-8");
-  const response = await workerClient.index(filePath, content);
+  const resolved = resolveSafePath(filePath);
+  const content = readFileSync(resolved, "utf-8");
+  const response = await workerClient.index(resolved, content);
   return { content: [{ type: "text", text: JSON.stringify(response, null, 2) }] };
 }
 
@@ -181,7 +193,7 @@ async function searchMarkdown(
   files: string[],
   caseSensitive: boolean,
 ): Promise<string> {
-  const args = caseSensitive ? ["-i", query, ...files] : [query, ...files];
+  const args = caseSensitive ? [query, ...files] : ["-i", query, ...files];
   const proc = Bun.spawn(["rg", ...args], { stdout: "pipe", stderr: "pipe" });
   const output = await new Response(proc.stdout).text();
   return output || "No results found";

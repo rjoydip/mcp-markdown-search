@@ -14,6 +14,7 @@
 
 import { parseArgs } from "util";
 import { readFileSync } from "fs";
+import { resolve } from "path";
 import { walkMarkdown } from "./lib/walker.js";
 
 const HELP = `
@@ -53,7 +54,7 @@ async function runSearch(query: string, dir: string, caseSensitive: boolean): Pr
     return;
   }
 
-  const args = caseSensitive ? ["-i", query, ...files] : [query, ...files];
+  const args = caseSensitive ? [query, ...files] : ["-i", query, ...files];
   const proc = Bun.spawn(["rg", ...args], { stdout: "pipe", stderr: "pipe" });
   const output = await new Response(proc.stdout).text();
 
@@ -73,9 +74,14 @@ function runList(dir: string): void {
   console.log(files.join("\n"));
 }
 
-function runRead(filePath: string): void {
+function runRead(filePath: string, baseDir: string): void {
   try {
-    const content = readFileSync(filePath, "utf-8");
+    const base = resolve(baseDir);
+    const resolved = resolve(base, filePath);
+    if (!resolved.startsWith(base + "\\") && !resolved.startsWith(base + "/") && resolved !== base) {
+      throw new Error("Access denied: path is outside the allowed directory");
+    }
+    const content = readFileSync(resolved, "utf-8");
     console.log(content);
   } catch {
     console.error(`Error reading file: ${filePath}`);
@@ -119,7 +125,7 @@ async function main() {
   } else if (options.list) {
     runList(dir);
   } else if (options.read) {
-    runRead(options.read);
+    runRead(options.read, dir);
   } else {
     console.error("No command specified. Use --help for usage.");
     process.exit(1);
