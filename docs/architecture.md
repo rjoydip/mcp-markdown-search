@@ -92,19 +92,20 @@ Lib modules (`chunker.ts`, `walker.ts`) are unit-tested with `bun test`.
 
 `mcp-worker.test.ts` tests the deployed Worker via live HTTP requests:
 
-| Describe  | Guard                     | Tests                                              |
-| --------- | ------------------------- | -------------------------------------------------- |
-| Endpoints | `WORKER_URL` required     | `GET /`, `GET /health`, validation (400), handlers |
-| Auth      | `WORKER_URL + MCP_SECRET` | `401` for missing/wrong `X-MCP-Secret` header      |
+| Describe              | Guard                          | Tests                                               |
+| --------------------- | ------------------------------ | --------------------------------------------------- |
+| `MCP Endpoints`       | `WORKER_URL` required          | `GET /`, `GET /health`, validation (400), handlers  |
+| `MCP Auth (enforced)` | `WORKER_URL + MCP_SECRET`      | `401` for missing/wrong `X-MCP-Secret` header       |
+| `MCP Auth (bypassed)` | `WORKER_URL` + no `MCP_SECRET` | `500` from missing AI/Vectorize (auth not enforced) |
 
-Auth bypass: when `MCP_SECRET` is not set on the Worker, `authenticate()` returns `true` for all requests.
+Auth bypass: `DISABLE_AUTH=true` must be explicitly set. If neither `DISABLE_AUTH` nor `MCP_SECRET` is set, all requests are denied (401).
 
 ### CI / Preview Testing
 
 The `preview.yml` workflow runs MCP tests after every preview deploy:
 
 1. **MCP Health Check** — `curl /health`
-2. **MCP Integration Test** — `bun test tests/mcp-worker.test.ts` with preview URL + secret
+2. **MCP Integration Test** — runs **only if** health check succeeded, with preview URL + secret
 3. **PR Comment** — pass/fail result posted as PR comment
 4. **Commit Status** — visible check in PR checks list
 

@@ -166,7 +166,7 @@ jobs:
 
       - name: MCP Integration Test
         id: mcp-test
-        if: steps.deploy.outcome == 'success'
+        if: steps.deploy.outcome == 'success' && steps.mcp-health.outcome == 'success'
         env:
           WORKER_URL: ${{ steps.deploy.outputs.deployment-url }}
           MCP_SECRET: ${{ secrets.MCP_SECRET }}

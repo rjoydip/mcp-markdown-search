@@ -166,21 +166,26 @@ Set via `wrangler secret put`:
 
 Tests the deployed Cloudflare Worker endpoints via HTTP:
 
-| Test suite | Command                                                 | Requires        |
-| ---------- | ------------------------------------------------------- | --------------- |
-| Endpoints  | `WORKER_URL=http://... bun run test:mcp`                | Worker running  |
-| Auth       | `WORKER_URL=http://... MCP_SECRET=... bun run test:mcp` | Worker + secret |
+| Test suite | Command                                    | Requires                 |
+| ---------- | ------------------------------------------ | ------------------------ |
+| Endpoints  | `bun run test:mcp:local`                   | Worker at localhost:8787 |
+| Auth (on)  | `bun run test:mcp:auth`                    | Worker with `MCP_SECRET` |
+| Auth (off) | Runs automatically when `MCP_SECRET` unset | Worker at localhost:8787 |
 
 ```sh
-# Local: start worker in one terminal
-bun run dev
+# Terminal 1: start worker with auth bypassed (local dev)
+bun run dev:test
 
-# Local: run functional tests in another
+# Terminal 2: run functional + bypassed-auth tests
 bun run test:mcp:local
+```
 
-# Local: run full test suite with auth
-bun run dev:test    # terminal 1 (worker with MCP_SECRET)
-bun run test:mcp:auth  # terminal 2
+```sh
+# Terminal 1: start worker with auth enforced
+bun run dev:auth
+
+# Terminal 2: run functional + enforced-auth tests
+bun run test:mcp:auth
 ```
 
 ### CI / Preview
@@ -188,12 +193,13 @@ bun run test:mcp:auth  # terminal 2
 On every PR, after preview deploy, the workflow automatically runs:
 
 1. **MCP Health Check** — verifies `/health` endpoint
-2. **MCP Integration Test** — runs all tests with the preview URL and secret
+2. **MCP Integration Test** — runs only if health check passed, with preview URL + secret
 3. **PR Comment** — posts pass/fail results
 4. **Commit Status** — visible status check in PR
 
 ### Auth Behavior
 
-- When `MCP_SECRET` is **not set** on the Worker, authentication is bypassed (local dev default)
-- When `MCP_SECRET` is **set**, all `/search` and `/index` requests require `X-MCP-Secret` header
-- Auth tests pass both when auth is enforced (`401`) and when bypassed (`500` from missing AI/Vectorize)
+- Auth **bypassed** when `DISABLE_AUTH=true` is set on the Worker (local dev default via `dev:test`)
+- Auth **enforced** when `MCP_SECRET` is set (via `dev:auth`, or deployed via `wrangler secret put`)
+- If **neither** `DISABLE_AUTH` nor `MCP_SECRET` is set, all requests are denied (401) — fail-closed
+- Auth tests separate into two suites: `MCP Auth (enforced)` expects `401`, `MCP Auth (bypassed)` expects `500` (from missing AI/Vectorize bindings)
