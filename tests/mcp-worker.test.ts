@@ -9,6 +9,13 @@ const describeEndpoints = WORKER_URL ? describe : describe.skip;
 const describeAuthOn = WORKER_URL && MCP_SECRET ? describe : describe.skip;
 const describeAuthOff = WORKER_URL && !MCP_SECRET ? describe : describe.skip;
 
+function headers(extra: Record<string, string> = {}): Record<string, string> {
+  if (MCP_SECRET) {
+    return { "Content-Type": "application/json", "X-MCP-Secret": MCP_SECRET, ...extra };
+  }
+  return { "Content-Type": "application/json", ...extra };
+}
+
 if (WORKER_URL) {
   beforeAll(async () => {
     const res = await fetch(`${baseUrl}/health`);
@@ -44,7 +51,7 @@ describeEndpoints("MCP Endpoints", () => {
   test("POST /search returns 400 when query is missing", async () => {
     const res = await fetch(baseUrl + "/search", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers(),
       body: JSON.stringify({}),
     });
     expect(res.status).toBe(400);
@@ -55,7 +62,7 @@ describeEndpoints("MCP Endpoints", () => {
   test("POST /search returns 400 when body is invalid JSON", async () => {
     const res = await fetch(baseUrl + "/search", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers(),
       body: "not-json",
     });
     expect(res.status).toBe(400);
@@ -64,7 +71,7 @@ describeEndpoints("MCP Endpoints", () => {
   test("POST /search accepts valid request", async () => {
     const res = await fetch(baseUrl + "/search", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers(),
       body: JSON.stringify({ query: "test query", topK: 5 }),
     });
     expect(res.ok).toBe(true);
@@ -73,7 +80,7 @@ describeEndpoints("MCP Endpoints", () => {
   test("POST /index returns 400 when filePath is missing", async () => {
     const res = await fetch(baseUrl + "/index", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers(),
       body: JSON.stringify({ content: "# hello" }),
     });
     expect(res.status).toBe(400);
@@ -84,7 +91,7 @@ describeEndpoints("MCP Endpoints", () => {
   test("POST /index returns 400 when content is missing", async () => {
     const res = await fetch(baseUrl + "/index", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers(),
       body: JSON.stringify({ filePath: "test.md" }),
     });
     expect(res.status).toBe(400);
@@ -95,7 +102,7 @@ describeEndpoints("MCP Endpoints", () => {
   test("POST /index returns 400 when body is invalid JSON", async () => {
     const res = await fetch(baseUrl + "/index", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers(),
       body: "not-json",
     });
     expect(res.status).toBe(400);
@@ -104,7 +111,7 @@ describeEndpoints("MCP Endpoints", () => {
   test("POST /index accepts valid request", async () => {
     const res = await fetch(baseUrl + "/index", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers(),
       body: JSON.stringify({
         filePath: "/docs/test.md",
         content: "# Test Document\n\nThis is test content.",
