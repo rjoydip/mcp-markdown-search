@@ -89,7 +89,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --env preview --branch ${{ github.head_ref || github.ref_name }}
           secrets: |
-            MCP_SECRET: ${{ secrets.MCP_SECRET }}
+            MCP_SECRET
 
       - name: Get preview URL
         id: url
