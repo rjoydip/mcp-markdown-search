@@ -1,0 +1,45 @@
+name: Code Analysis
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fallow:
+    name: Fallow Analysis
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      - name: Run Fallow analysis
+        uses: fallow-rs/fallow@8a83dc0e86232d874f845eee306c75f3fb9c95d7 # v2.102.0
+        with:
+          format: sarif
+          comment: true
+          annotations: true
+          fail-on-issues: false
+
+      - name: Upload SARIF to GitHub Code Scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        with:
+          sarif_file: fallow-results.sarif
+          category: fallow-analysis-${{ github.run_id }}
