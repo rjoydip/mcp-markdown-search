@@ -87,7 +87,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env preview --branch ${{ github.head_ref || github.ref_name }}
+          command: deploy --env preview
           secrets: |
             MCP_SECRET
         env:
